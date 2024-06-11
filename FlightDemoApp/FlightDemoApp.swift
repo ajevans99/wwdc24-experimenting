@@ -1,5 +1,5 @@
 //
-//  WWD24App.swift
+//  FlightDemoApp.swift
 //  WWD24
 //
 //  Created by Austin Evans on 6/10/24.
@@ -9,7 +9,7 @@ import SwiftUI
 import SwiftData
 
 @main
-struct WWD24App: App {
+struct FlightDemoApp: App {
   var sharedModelContainer: ModelContainer = {
     let schema = Schema([
       Airport.self,
