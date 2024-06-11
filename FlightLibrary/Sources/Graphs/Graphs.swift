@@ -39,6 +39,10 @@ public struct Edge<T: Hashable>: CustomStringConvertible {
   }
 }
 
+public enum GraphError: Error {
+  case nodeNotFound
+}
+
 public struct Graph<T: Hashable>: CustomStringConvertible {
   private var nodes: [Node<T>] = []
 
@@ -50,7 +54,7 @@ public struct Graph<T: Hashable>: CustomStringConvertible {
     self.nodes = nodes
     for (fromNode, toNode, weight) in edges {
       if var fromNodeInGraph = self.nodes.first(where: { $0 == fromNode }) {
-        connect(from: &fromNodeInGraph, to: toNode, withWeight: weight)
+        try! connect(from: &fromNodeInGraph, to: toNode, withWeight: weight)
       }
     }
   }
@@ -62,11 +66,13 @@ public struct Graph<T: Hashable>: CustomStringConvertible {
     return newNode
   }
 
-  public mutating func connect(from node1: inout Node<T>, to node2: Node<T>, withWeight weight: Int = 1) {
+  public mutating func connect(from node1: inout Node<T>, to node2: Node<T>, withWeight weight: Int = 1) throws(GraphError) {
     let edge = Edge(neighbor: node2, weight: weight)
     if let index = nodes.firstIndex(of: node1) {
       nodes[index].neighbors.append(edge)
       node1.neighbors = nodes[index].neighbors
+    } else {
+      throw GraphError.nodeNotFound
     }
   }
 

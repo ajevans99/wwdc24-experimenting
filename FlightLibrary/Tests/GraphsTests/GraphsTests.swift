@@ -16,7 +16,7 @@ struct GraphsTests {
     var nodeA = graph.insertNode(withValue: "A")
     let nodeB = graph.insertNode(withValue: "B")
 
-    graph.connect(from: &nodeA, to: nodeB, withWeight: 2)
+    try graph.connect(from: &nodeA, to: nodeB, withWeight: 2)
 
     let neighborNode = try #require(nodeA.neighbors.first)
     #expect(nodeA.neighbors.count == 1)
@@ -24,16 +24,27 @@ struct GraphsTests {
     #expect(neighborNode.weight == 2)
   }
 
-  @Test("Ensure description on graph with both `.description` and string interpolation")
-  func description() {
+  @Test func connectNodesFailure() {
+    var graph = Graph<String>()
+
+    var nodeA = Node(value: "A")
+    let nodeB = graph.insertNode(withValue: "B")
+
+    #expect(throws: GraphError.nodeNotFound) {
+      try graph.connect(from: &nodeA, to: nodeB)
+    }
+  }
+
+  @Test("Graph description and string interpolation")
+  func description() throws {
     var graph = Graph<String>()
 
     var nodeA = graph.insertNode(withValue: "A")
     let nodeB = graph.insertNode(withValue: "B")
     let nodeC = graph.insertNode(withValue: "C")
 
-    graph.connect(from: &nodeA, to: nodeB, withWeight: 2)
-    graph.connect(from: &nodeA, to: nodeC, withWeight: 3)
+    try graph.connect(from: &nodeA, to: nodeB, withWeight: 2)
+    try graph.connect(from: &nodeA, to: nodeC, withWeight: 3)
 
     let expectedDescription = "A -> B(2) C(3)\nB\nC"
     #expect(graph.description == expectedDescription)
@@ -52,19 +63,30 @@ struct GraphsTests {
     #expect(graph.node(forValue: "B") != nil)
   }
 
-  @Test func removeEdge() {
+  @Test func removeEdge() throws {
     var graph = Graph<String>()
 
     var nodeA = graph.insertNode(withValue: "A")
     let nodeB = graph.insertNode(withValue: "B")
 
-    graph.connect(from: &nodeA, to: nodeB, withWeight: 2)
+    try graph.connect(from: &nodeA, to: nodeB, withWeight: 2)
     graph.removeEdge(from: nodeA, to: nodeB)
 
     #expect(graph.node(forValue: "B")?.neighbors.isEmpty == true)
   }
 }
 
+extension Node<AirportGraphsExample.Airport>: @retroactive CustomTestStringConvertible {
+  public var testDescription: String {
+    "\(value.name.prefix(upTo: value.name.index(value.name.startIndex, offsetBy: 10))) (\(value.code))"
+  }
+}
+
+extension Tag {
+  @Tag static var integration: Self
+}
+
+@Suite("Airport Integration", .tags(.integration))
 struct AirportGraphsExample {
   struct Airport: Hashable {
     let code: String
@@ -78,6 +100,8 @@ struct AirportGraphsExample {
     Node(value: Airport(code: "DTW", name: "Detroit Metropolitan Wayne County Airport"))
   ]
 
+
+
   var graph = Graph<Airport>(
     nodes: Self.airports,
     edges: [
@@ -88,23 +112,11 @@ struct AirportGraphsExample {
     ]
   )
 
-  @Test
-  func nodes() {
+  @Test(arguments: Self.airports)
+  func airportNodesInGraph(_ node: Node<Airport>) {
     #expect(
-      graph.node(forValue: Self.airports[0].value) != nil,
-      "Expected to find JFK node"
-    )
-    #expect(
-      graph.node(forValue: Self.airports[1].value) != nil,
-      "Expected to find LHR node"
-    )
-    #expect(
-      graph.node(forValue: Self.airports[2].value) != nil,
-      "Expected to find CDG node"
-    )
-    #expect(
-      graph.node(forValue: Self.airports[3].value) != nil,
-      "Expected to find DTW node"
+      graph.node(forValue: node.value) != nil,
+      "Expected to find \(node.value.code) node"
     )
   }
 
@@ -148,7 +160,7 @@ struct AirportGraphsExample {
   @Test mutating func addEdge() throws {
     var jfk = try #require(graph.node(forValue: Self.airports[0].value))
     let dtw = try #require(graph.node(forValue: Self.airports[3].value))
-    graph.connect(from: &jfk, to: dtw, withWeight: 2)
+    try graph.connect(from: &jfk, to: dtw, withWeight: 2)
     #expect(
       graph.node(forValue: jfk.value)?.neighbors.contains { $0.neighbor == dtw } == true,
       "Expected DTW to be a neighbor of JFK"
@@ -166,6 +178,7 @@ struct AirportGraphsExample {
   }
 }
 
+@Suite("Module Integration", .tags(.integration))
 struct ModuleGraphsExample {
   struct Module: Hashable {
     let name: String
@@ -235,7 +248,7 @@ struct ModuleGraphsExample {
   @Test mutating func addEdge() throws {
     var core = try #require(graph.node(forValue: Self.modules[0].value))
     let database = try #require(graph.node(forValue: Self.modules[3].value))
-    graph.connect(from: &core, to: database, withWeight: 1)
+    try graph.connect(from: &core, to: database, withWeight: 1)
     #expect(
       graph.node(forValue: core.value)?.neighbors.contains { $0.neighbor == database } == true,
       "Expected Database to be a neighbor of Core"
